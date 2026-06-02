@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+.venv/
+node_modules/
+dist/
+*.egg-info/
+.drama/
+素材/
+导出/
