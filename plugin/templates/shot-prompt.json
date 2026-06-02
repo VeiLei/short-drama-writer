@@ -1,0 +1,24 @@
+{
+  "episode_id": "0001",
+  "episode_title": "",
+  "platform": "jimeng",
+  "shots": [
+    {
+      "shot_id": "S01_F01",
+      "frame_type": "WIDE",
+      "prompt": {
+        "positive": "",
+        "negative": "",
+        "spatial_anchors": "",
+        "lighting_mood": "",
+        "character_references": [],
+        "scene_reference": ""
+      },
+      "video_params": {
+        "duration_sec": 4,
+        "aspect_ratio": "9:16",
+        "fps": 24
+      }
+    }
+  ]
+}

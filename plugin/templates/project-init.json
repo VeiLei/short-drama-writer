@@ -1,0 +1,21 @@
+{
+  "project": {
+    "title": "",
+    "genre": "",
+    "sub_genre": "",
+    "target_platform": "",
+    "total_episodes": 100,
+    "episode_duration_min": 1,
+    "episode_duration_max": 3,
+    "aspect_ratio": "9:16"
+  },
+  "creative_constraints": {
+    "one_liner": "",
+    "core_conflict": "",
+    "target_audience": "",
+    "anti_trope_rules": [],
+    "hard_constraints": []
+  },
+  "created_at": "",
+  "version": "1.0"
+}
