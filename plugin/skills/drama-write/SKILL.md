@@ -20,7 +20,7 @@ Produce one episode script with full shot flow map and spatial layout. This is t
 
 Determine episode number (ask user or read current state):
 ```bash
-python {PLUGIN_SCRIPTS}/state_manager.py get
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py get
 ```
 
 ### Step 1: Context Research (context-agent)
@@ -30,7 +30,7 @@ python {PLUGIN_SCRIPTS}/state_manager.py get
 ```
 Agent(
   subagent_type: "short-drama-writer:context-agent",
-  prompt: "Episode {episode_number}, project root: {project_root}, plugin scripts: {PLUGIN_SCRIPTS}"
+  prompt: "Episode {episode_number}, project root: {project_root}, plugin scripts: ${CLAUDE_PLUGIN_ROOT}/scripts"
 )
 ```
 
@@ -72,13 +72,13 @@ Save the shot flow map to `分镜/第{episode_number}集-分镜.json`.
 ```
 Agent(
   subagent_type: "short-drama-writer:reviewer",
-  prompt: "Review episode script: {script_path}, project root: {project_root}, plugin scripts: {PLUGIN_SCRIPTS}"
+  prompt: "Review episode script: {script_path}, project root: {project_root}, plugin scripts: ${CLAUDE_PLUGIN_ROOT}/scripts"
 )
 ```
 
 The reviewer outputs a JSON issue list. Save raw review:
 ```bash
-python {PLUGIN_SCRIPTS}/review_saver.py save {episode_number} '<review_json>'
+python ${CLAUDE_PLUGIN_ROOT}/scripts/review_saver.py save {episode_number} '<review_json>'
 ```
 
 **Blocking gate:** If any issue has `blocking: true`, the draft MUST return to Step 2 for fixes. Non-blocking issues can be handled in Step 4.
@@ -97,13 +97,13 @@ Address all non-blocking issues from review:
 ```
 Agent(
   subagent_type: "short-drama-writer:data-agent",
-  prompt: "Extract data from: {script_path}, project root: {project_root}, plugin scripts: {PLUGIN_SCRIPTS}"
+  prompt: "Extract data from: {script_path}, project root: {project_root}, plugin scripts: ${CLAUDE_PLUGIN_ROOT}/scripts"
 )
 ```
 
 **5.2 Commit** — run the commit script with the data-agent output:
 ```bash
-python {PLUGIN_SCRIPTS}/chapter_commit.py {episode_number}
+python ${CLAUDE_PLUGIN_ROOT}/scripts/chapter_commit.py {episode_number}
 ```
 
 Then manually update memory files using the data-agent JSON output via Python scripts.

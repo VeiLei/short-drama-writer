@@ -12,7 +12,7 @@ Review a specific episode's quality using the reviewer agent.
 
 Ask user which episode to review, or read current state:
 ```bash
-python {PLUGIN_SCRIPTS}/state_manager.py get
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py get
 ```
 
 ### Step 2: Load References
@@ -28,7 +28,7 @@ Read:
 ```
 Agent(
   subagent_type: "short-drama-writer:reviewer",
-  prompt: "Review: {script_path}, project root: {project_root}, plugin scripts: {PLUGIN_SCRIPTS}"
+  prompt: "Review: {script_path}, project root: {project_root}, plugin scripts: ${CLAUDE_PLUGIN_ROOT}/scripts"
 )
 ```
 
@@ -36,7 +36,7 @@ Agent(
 
 Save the review:
 ```bash
-python {PLUGIN_SCRIPTS}/review_saver.py save {episode_number} '<review_json>'
+python ${CLAUDE_PLUGIN_ROOT}/scripts/review_saver.py save {episode_number} '<review_json>'
 ```
 
 ### Step 5: Handle Blocking Issues
@@ -48,5 +48,5 @@ If blocking issues exist, ask user via AskUserQuestion:
 ### Step 6: Update State
 
 ```bash
-python {PLUGIN_SCRIPTS}/state_manager.py update stats.episodes_reviewed <N>
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py update stats.episodes_reviewed <N>
 ```

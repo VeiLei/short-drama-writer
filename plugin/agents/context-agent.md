@@ -21,8 +21,8 @@ Run these Bash commands to load context:
 
 ```bash
 cd {project_root}
-python {plugin_scripts}/outline_loader.py {episode_number}  # Get this episode's outline
-python {plugin_scripts}/memory_manager.py summary           # Get all memory (character states, foreshadowing, costumes)
+python ${CLAUDE_PLUGIN_ROOT}/scripts/outline_loader.py {episode_number}  # Get this episode's outline
+python ${CLAUDE_PLUGIN_ROOT}/scripts/memory_manager.py summary           # Get all memory (character states, foreshadowing, costumes)
 ```
 
 Then Read these files:
@@ -37,7 +37,7 @@ Then Read these files:
 
 If the episode outline references side characters or specific rules, query them:
 ```bash
-python {plugin_scripts}/character_manager.py get {character_name}
+python ${CLAUDE_PLUGIN_ROOT}/scripts/character_manager.py get {character_name}
 ```
 
 ### Phase C: Cross-Episode Analysis

@@ -10,30 +10,30 @@ Query any aspect of the current drama project.
 
 ### Character Query
 ```bash
-python {PLUGIN_SCRIPTS}/character_manager.py list
-python {PLUGIN_SCRIPTS}/character_manager.py get <name>
+python ${CLAUDE_PLUGIN_ROOT}/scripts/character_manager.py list
+python ${CLAUDE_PLUGIN_ROOT}/scripts/character_manager.py get <name>
 ```
 
 ### Episode Query
 ```bash
-python {PLUGIN_SCRIPTS}/outline_loader.py <episode_number>
+python ${CLAUDE_PLUGIN_ROOT}/scripts/outline_loader.py <episode_number>
 ```
 
 ### Memory Query
 ```bash
-python {PLUGIN_SCRIPTS}/memory_manager.py summary
-python {PLUGIN_SCRIPTS}/memory_manager.py character_state
-python {PLUGIN_SCRIPTS}/memory_manager.py foreshadowing
+python ${CLAUDE_PLUGIN_ROOT}/scripts/memory_manager.py summary
+python ${CLAUDE_PLUGIN_ROOT}/scripts/memory_manager.py character_state
+python ${CLAUDE_PLUGIN_ROOT}/scripts/memory_manager.py foreshadowing
 ```
 
 ### State Query
 ```bash
-python {PLUGIN_SCRIPTS}/state_manager.py get
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py get
 ```
 
 ### Review Query
 ```bash
-python {PLUGIN_SCRIPTS}/review_saver.py get <episode_number>
+python ${CLAUDE_PLUGIN_ROOT}/scripts/review_saver.py get <episode_number>
 ```
 
 ## Output

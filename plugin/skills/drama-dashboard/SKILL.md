@@ -12,18 +12,18 @@ Launch the read-only drama project dashboard.
 
 Check backend is running:
 ```bash
-curl {BACKEND_URL}/api/health
+curl http://localhost:8001/api/health
 ```
 
 If not running, start it:
 ```bash
-cd {BACKEND_DIR} && python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 &
+cd ${CLAUDE_PLUGIN_ROOT}/../backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 &
 ```
 
 ### Step 2: Launch Dashboard
 
 ```bash
-cd {BACKEND_DIR}/dashboard && npm run dev
+cd ${CLAUDE_PLUGIN_ROOT}/../backend/dashboard && npm run dev
 ```
 
 The dashboard is a read-only React app that:

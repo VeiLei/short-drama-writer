@@ -19,7 +19,7 @@ You receive:
 
 Read the episode script and run:
 ```bash
-python {plugin_scripts}/memory_manager.py summary
+python ${CLAUDE_PLUGIN_ROOT}/scripts/memory_manager.py summary
 ```
 
 This gives you the BEFORE state for comparison.

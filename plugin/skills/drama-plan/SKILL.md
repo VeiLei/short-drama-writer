@@ -14,7 +14,7 @@ Generate the episode-by-episode outline based on the master outline and creative
 
 Run preflight:
 ```bash
-python {PLUGIN_SCRIPTS}/state_manager.py get
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py get
 ```
 
 ## Workflow
@@ -71,6 +71,6 @@ Validate:
 
 Update state:
 ```bash
-python {PLUGIN_SCRIPTS}/state_manager.py update phase plan
-python {PLUGIN_SCRIPTS}/state_manager.py update total_episodes <N>
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py update phase plan
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py update total_episodes <N>
 ```

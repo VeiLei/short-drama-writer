@@ -24,7 +24,7 @@ Read the relevant prompt JSON files from `提示词/`.
 
 For each character prompt file:
 ```bash
-curl -X POST {BACKEND_URL}/api/generate/image \
+curl -X POST http://localhost:8001/api/generate/image \
   -H "Content-Type: application/json" \
   -d @提示词/{episode}-角色图提示词.json
 ```
@@ -35,7 +35,7 @@ Save returned asset references to `素材/角色/`.
 
 For each scene prompt file:
 ```bash
-curl -X POST {BACKEND_URL}/api/generate/image \
+curl -X POST http://localhost:8001/api/generate/image \
   -H "Content-Type: application/json" \
   -d @提示词/{episode}-场景图提示词.json
 ```
@@ -44,14 +44,14 @@ curl -X POST {BACKEND_URL}/api/generate/image \
 
 For each shot in the video prompt file:
 ```bash
-curl -X POST {BACKEND_URL}/api/generate/video \
+curl -X POST http://localhost:8001/api/generate/video \
   -H "Content-Type: application/json" \
   -d '<shot_prompt_json>'
 ```
 
 Poll status:
 ```bash
-curl {BACKEND_URL}/api/generate/status/{task_id}
+curl http://localhost:8001/api/generate/status/{task_id}
 ```
 
 Save completed video references to `素材/视频/`.
@@ -59,5 +59,5 @@ Save completed video references to `素材/视频/`.
 ### Step 6: Update State
 
 ```bash
-python {PLUGIN_SCRIPTS}/state_manager.py update stats.shots_generated <N>
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py update stats.shots_generated <N>
 ```

@@ -10,9 +10,9 @@ Initialize a new short drama project. Gather creative direction through structur
 
 Ask the user for the project directory or use current working directory. Run:
 ```bash
-python {PLUGIN_SCRIPTS}/project_init.py "<Project Title>"
+python ${CLAUDE_PLUGIN_ROOT}/scripts/project_init.py "<Project Title>"
 ```
-where `{PLUGIN_SCRIPTS}` is the `scripts/` directory of this plugin.
+where `${CLAUDE_PLUGIN_ROOT}/scripts` is the `scripts/` directory of this plugin.
 
 ## Workflow
 
