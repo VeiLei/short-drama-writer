@@ -69,6 +69,14 @@ Save the draft to `剧本/第{episode_number}集-{title}.md`.
 
 Save the shot flow map to `分镜/第{episode_number}集-分镜.json`.
 
+**Generate prompt JSONs for each shot:** For every shot in the flow map, assemble a video generation prompt following `references/video-prompt-rules.md` 8-dimension framework (主体描述/动作运动/场景环境/镜头语言/光影色调/风格情绪/时间节奏/叙事约束). Save to `提示词/第{episode_number}集-视频提示词.json` using `templates/shot-prompt.json` format. Each shot entry must include:
+- `positive`: full 8-dimension prompt in Chinese
+- `negative`: negative prompt (avoid abstract terms, faces, text, watermarks)
+- `spatial_anchors`: scene key landmarks
+- `lighting_mood`: from the scene's lighting setup
+- `character_references`: list of character names appearing in this shot
+- `scene_reference`: scene name
+
 ### Step 3: Review (reviewer agent)
 
 **MUST delegate to `short-drama-writer:reviewer` via Agent tool.**
@@ -116,6 +124,7 @@ Then manually update memory files using the data-agent JSON output via Python sc
 **5.3 Sufficiency Gate:**
 - [ ] Episode script file exists at `剧本/第{episode_number}集-*.md`
 - [ ] Shot flow map JSON exists at `分镜/第{episode_number}集-分镜.json`
+- [ ] Video prompt JSON exists at `提示词/第{episode_number}集-视频提示词.json`
 - [ ] Review report exists at `审查报告/第{episode_number}集审查报告.md`
 - [ ] ALL blocking issues resolved
 - [ ] Memory files updated
