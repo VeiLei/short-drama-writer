@@ -18,6 +18,7 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py get
 ### Step 2: Load References
 
 Read:
+- `references/script-generation-rules.md` (DNA, writing, dialogue, continuity rules)
 - `references/cinematic-rules.md`
 - `references/ai-flavor-checklist.md`
 - `references/shot-composition.md`

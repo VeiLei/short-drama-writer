@@ -18,10 +18,13 @@ where `${CLAUDE_PLUGIN_ROOT}/scripts` is the `scripts/` directory of this plugin
 
 ### Step 1: Story Core & Commercial Positioning
 
+If the user is exploring creative directions, read `references/trendy-formulas.md` for the formula library (F1-F9) and audience preference mapping. Use this as creative inspiration during questioning.
+
 Ask the user (use AskUserQuestion, one at a time):
 
 1. **选题方向**: What type of story? Offer the 6 genre options + "Other"
    - 都市爽文 / 古装剧 / 甜宠 / 家庭伦理 / 复仇逆袭 / 悬疑
+   - 颠系短剧 (参考 trendy-formulas.md 公式库)
 
 2. **一句话梗概**: Ask user to describe the story in one sentence.
 

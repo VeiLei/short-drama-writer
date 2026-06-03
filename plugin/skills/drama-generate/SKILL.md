@@ -6,6 +6,10 @@ allowed-tools: Read Bash
 
 Generate visual assets by calling the backend API with prepared prompt JSON files.
 
+## Preflight: Load Video Prompt Rules
+
+Read `references/video-prompt-rules.md` — this is the mandatory framework for all video prompt generation. Every shot prompt must follow the 8-dimension framework: 主体描述/动作运动/场景环境/镜头语言/光影色调/风格情绪/时间节奏/叙事约束.
+
 ## Workflow
 
 ### Step 1: Determine Scope

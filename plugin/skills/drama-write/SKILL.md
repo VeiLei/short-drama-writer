@@ -53,13 +53,17 @@ Write the episode script following `templates/episode-script.md`. The draft must
 5. Dialogue (if any)
 6. Continuity note (how it connects to the previous shot)
 
-**Writing rules:**
+**Writing rules:** Follow `references/script-generation-rules.md` for all constraints. Key points:
+- 钩子：前5秒必须有异常/冲突/悬念
+- 每场戏必须有冲突，情绪不能平
+- 每集至少一次认知反转，结尾必须未闭合
 - Show emotion through behavior, not labels
 - No AI cliché words (缓缓, 微微, 渐渐, 悄然, 深邃, 璀璨)
 - No paragraph-ending reflective/总结 sentences
 - No "殊不知/little did he know" constructions
-- End each scene with a mini-hook that pushes to the next scene
-- End the episode with the hook specified in the task book
+- 每Scene至少1句"子弹台词"
+- 对白短句为主，禁止纯信息播报模式
+- 角色状态和空间位置必须跨场景延续
 
 Save the draft to `剧本/第{episode_number}集-{title}.md`.
 
@@ -87,9 +91,10 @@ python ${CLAUDE_PLUGIN_ROOT}/scripts/review_saver.py save {episode_number} '<rev
 
 Address all non-blocking issues from review:
 1. Fix AI-flavor issues (apply `references/ai-flavor-checklist.md`)
-2. Verify shot continuity (apply `references/cinematic-rules.md`)
-3. Check dialogue authenticity (apply genre-specific dialogue guide)
-4. Format consistency (ensure template structure is clean)
+2. Verify against `references/script-generation-rules.md` (DNA, dialogue, continuity)
+3. Verify shot continuity (apply `references/cinematic-rules.md`)
+4. Check dialogue authenticity (apply genre-specific dialogue guide)
+5. Format consistency (ensure template structure is clean)
 
 ### Step 5: Submit
 
