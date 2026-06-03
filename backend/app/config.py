@@ -1,6 +1,11 @@
 """Backend configuration."""
 
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load .env from backend/ root
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 class Config:
