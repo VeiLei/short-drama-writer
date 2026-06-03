@@ -74,8 +74,32 @@ Save the shot flow map to `分镜/第{episode_number}集-分镜.json`.
 - `negative`: negative prompt (avoid abstract terms, faces, text, watermarks)
 - `spatial_anchors`: scene key landmarks
 - `lighting_mood`: from the scene's lighting setup
-- `character_references`: list of character names appearing in this shot
-- `scene_reference`: scene name
+- `character_references`: [{name, outfit}] — characters and their current outfit in this shot
+- `scene_reference`: {scene_name, frame_id} — which shot frame to use as background
+
+**Extract shot frames and variants:** From all shots across all scenes, derive two lists:
+
+1. **取景框清单**（去重）：对每个 `{scene_name, frame_id}` 组合，查询 `assets.json` 是否已存在。缺失项写入 `提示词/第{episode_number}集-缺失取景框.json`：
+```json
+[{"scene_name": "咖啡厅", "frame_id": "coffee_bar_2shot", "frame_type": "two_shot",
+  "prompt": "吧台中景：木质吧台占画面下1/3，酒架背景。空镜无人物。"}]
+```
+
+2. **变装清单**（去重）：对每个 `{character, outfit}` 组合，查询 `assets.json` 是否已有该着装版本。缺失项写入 `提示词/第{episode_number}集-缺失变装.json`：
+```json
+[{"name": "林若雪", "outfit": "晚宴礼服",
+  "prompt": "CG游戏角色原画风格...新着装：黑色晚礼服长裙..."}]
+```
+
+取景框类型判断依据（从 shot 的 frame_type + 角色数量反推）：
+
+| shot 特征 | frame_id 后缀 | frame_type |
+|----------|-------------|------------|
+| 本场景第1个镜头 | `_{场景}_master` | establishing |
+| frame_type=MS 且 characters≥2 | `_{区域}_2shot` | two_shot |
+| frame_type=CU/MCU 且 characters=1 | `_{区域}_cu` | single_closeup |
+| facing 中一方看向另一方 | `_{区域}_os` | over_shoulder |
+| frame_type=ECU 拍物体 | `_{物体}_ecu` | insert_cu |
 
 ### Step 3: Review (reviewer agent)
 
@@ -125,6 +149,8 @@ Then manually update memory files using the data-agent JSON output via Python sc
 - [ ] Episode script file exists at `剧本/第{episode_number}集-*.md`
 - [ ] Shot flow map JSON exists at `分镜/第{episode_number}集-分镜.json`
 - [ ] Video prompt JSON exists at `提示词/第{episode_number}集-视频提示词.json`
+- [ ] Missing shot frames JSON exists at `提示词/第{episode_number}集-缺失取景框.json`（空数组=全就绪）
+- [ ] Missing variants JSON exists at `提示词/第{episode_number}集-缺失变装.json`（空数组=全就绪）
 - [ ] Review report exists at `审查报告/第{episode_number}集审查报告.md`
 - [ ] ALL blocking issues resolved
 - [ ] Memory files updated

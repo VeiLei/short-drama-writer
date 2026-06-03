@@ -1,92 +1,181 @@
-"""本地 Asset 索引 — 轻量 JSON 文件追踪已生成素材及 TOS URL。
+"""本地 Asset 索引 — 轻量 JSON 文件追踪已生成素材。
 
-不依赖 MySQL，直接读写项目目录下的 .drama/assets.json。
+角色资产：基础四视图 + 变装四视图（outfit 区分）
+场景资产：全景参考图 (master) + 取景框 (shot_frame, parent=master)
 """
 
 import json
 import os
 from datetime import datetime
-from pathlib import Path
+from typing import Optional
 
 
 class AssetIndex:
-    """管理项目素材索引。每个短剧项目一个索引文件。"""
-
     def __init__(self, project_root: str):
         self.index_dir = os.path.join(project_root, ".drama")
         self.index_path = os.path.join(self.index_dir, "assets.json")
         os.makedirs(self.index_dir, exist_ok=True)
         if not os.path.exists(self.index_path):
-            self._write({})
+            self._write({"characters": {}, "scenes": {}, "updated_at": ""})
 
     def _read(self) -> dict:
         with open(self.index_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
     def _write(self, data: dict):
+        data["updated_at"] = datetime.now().isoformat()
         with open(self.index_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-    def add(self, asset_type: str, related_id: str, tos_url: str = "",
-            local_path: str = "", prompt: str = "", metadata: dict = None) -> str:
-        """添加一条素材记录，返回 asset_id。
+    # ── 角色 ─────────────────────────────────────────────────
 
-        Args:
-            asset_type: character_image | scene_image | video
-            related_id: 角色名/场景名/镜头ID
-            tos_url: TOS 公网 URL
-            local_path: 本地文件路径
-            prompt: 生成所用的提示词
-            metadata: 额外元数据
-        """
+    def add_character(self, name: str, tos_url: str, local_path: str = "",
+                      outfit: str = "基础", is_base: bool = True, prompt: str = "") -> str:
+        """添加角色四视图。outfit 区分基础版和变装版。"""
         data = self._read()
-        assets = data.setdefault("assets", [])
-        asset_id = f"{asset_type}/{related_id}"
-        assets.append({
-            "asset_id": asset_id,
-            "asset_type": asset_type,
-            "related_id": related_id,
+        chars = data.setdefault("characters", {})
+        char_entry = chars.setdefault(name, {"variants": []})
+
+        # 同 outfit 替换旧条目
+        char_entry["variants"] = [
+            v for v in char_entry["variants"] if v.get("outfit") != outfit
+        ]
+        variant = {
+            "outfit": outfit,
+            "is_base": is_base,
             "tos_url": tos_url,
             "local_path": local_path,
             "prompt": prompt,
-            "metadata": metadata or {},
+            "created_at": datetime.now().isoformat(),
+        }
+        char_entry["variants"].append(variant)
+        self._write(data)
+        return f"{name}/{outfit}"
+
+    def get_character_variant(self, name: str, outfit: str = "基础") -> Optional[dict]:
+        """查询角色指定着装版本的四视图。"""
+        data = self._read()
+        char = data.get("characters", {}).get(name, {})
+        for v in char.get("variants", []):
+            if v.get("outfit") == outfit:
+                return v
+        return None
+
+    def get_character_base(self, name: str) -> Optional[dict]:
+        """查询角色基础四视图。"""
+        return self.get_character_variant(name, "基础")
+
+    def list_character_outfits(self, name: str) -> list[str]:
+        """列出角色的所有着装版本。"""
+        data = self._read()
+        char = data.get("characters", {}).get(name, {})
+        return [v.get("outfit", "") for v in char.get("variants", [])]
+
+    def character_has_outfit(self, name: str, outfit: str) -> bool:
+        return self.get_character_variant(name, outfit) is not None
+
+    def get_character_tos_url(self, name: str, outfit: str = "基础") -> str:
+        v = self.get_character_variant(name, outfit)
+        return v["tos_url"] if v else ""
+
+    # ── 场景 ─────────────────────────────────────────────────
+
+    def add_scene_master(self, name: str, tos_url: str, local_path: str = "",
+                         prompt: str = "") -> str:
+        """添加场景全景参考图。已存在则替换。"""
+        data = self._read()
+        scenes = data.setdefault("scenes", {})
+        scene_entry = scenes.setdefault(name, {"master": None, "shot_frames": []})
+        scene_entry["master"] = {
+            "tos_url": tos_url,
+            "local_path": local_path,
+            "prompt": prompt,
+            "created_at": datetime.now().isoformat(),
+        }
+        self._write(data)
+        return f"{name}/master"
+
+    def get_scene_master(self, name: str) -> Optional[dict]:
+        data = self._read()
+        scene = data.get("scenes", {}).get(name, {})
+        return scene.get("master")
+
+    def get_scene_master_url(self, name: str) -> str:
+        m = self.get_scene_master(name)
+        return m["tos_url"] if m else ""
+
+    def add_shot_frame(self, scene_name: str, frame_id: str, frame_type: str,
+                       tos_url: str, local_path: str = "", prompt: str = "") -> str:
+        """添加场景取景框。frame_id 如 'coffee_bar_2shot'，parent 固定为 scene master。"""
+        data = self._read()
+        scenes = data.setdefault("scenes", {})
+        scene_entry = scenes.setdefault(scene_name, {"master": None, "shot_frames": []})
+
+        # 同 frame_id 替换
+        scene_entry["shot_frames"] = [
+            f for f in scene_entry["shot_frames"] if f.get("frame_id") != frame_id
+        ]
+        scene_entry["shot_frames"].append({
+            "frame_id": frame_id,
+            "frame_type": frame_type,
+            "tos_url": tos_url,
+            "local_path": local_path,
+            "prompt": prompt,
             "created_at": datetime.now().isoformat(),
         })
-        data["updated_at"] = datetime.now().isoformat()
         self._write(data)
-        return asset_id
+        return f"{scene_name}/{frame_id}"
 
-    def get_by_related(self, related_id: str) -> list[dict]:
-        """按 related_id 查询素材。"""
+    def get_shot_frame(self, scene_name: str, frame_id: str) -> Optional[dict]:
         data = self._read()
-        return [a for a in data.get("assets", []) if a["related_id"] == related_id]
+        scene = data.get("scenes", {}).get(scene_name, {})
+        for f in scene.get("shot_frames", []):
+            if f.get("frame_id") == frame_id:
+                return f
+        return None
 
-    def get_tos_urls(self, related_ids: list[str]) -> list[str]:
-        """批量获取 TOS URL。用于构建 reference_images。"""
-        data = self._read()
-        urls = []
-        for a in data.get("assets", []):
-            if a["related_id"] in related_ids and a.get("tos_url"):
-                urls.append(a["tos_url"])
-        return urls
+    def get_shot_frame_url(self, scene_name: str, frame_id: str) -> str:
+        f = self.get_shot_frame(scene_name, frame_id)
+        return f["tos_url"] if f else ""
 
-    def get_all_characters(self) -> dict[str, str]:
-        """返回 {角色名: tos_url} 映射。"""
+    def list_scene_frames(self, scene_name: str) -> list[str]:
         data = self._read()
-        return {
-            a["related_id"]: a["tos_url"]
-            for a in data.get("assets", [])
-            if a["asset_type"] == "character_image" and a.get("tos_url")
-        }
+        scene = data.get("scenes", {}).get(scene_name, {})
+        return [f.get("frame_id", "") for f in scene.get("shot_frames", [])]
 
-    def get_all_scenes(self) -> dict[str, str]:
-        """返回 {场景名: tos_url} 映射。"""
-        data = self._read()
-        return {
-            a["related_id"]: a["tos_url"]
-            for a in data.get("assets", [])
-            if a["asset_type"] == "scene_image" and a.get("tos_url")
-        }
+    def has_shot_frame(self, scene_name: str, frame_id: str) -> bool:
+        return self.get_shot_frame(scene_name, frame_id) is not None
+
+    # ── 批量查询 ──────────────────────────────────────────────
+
+    def get_reference_urls(self, character_entries: list[dict],
+                           scene_name: str, frame_id: str) -> dict:
+        """一次查询拿到视频生成所需的全部 TOS URL。
+
+        Args:
+            character_entries: [{name, outfit}] 本镜头出场角色及着装
+            scene_name: 场景名
+            frame_id: 取景框ID
+
+        Returns:
+            {character_urls: [...], scene_url: str, missing: [...]}
+        """
+        result = {"character_urls": [], "scene_url": "", "missing": []}
+
+        for entry in character_entries:
+            url = self.get_character_tos_url(entry["name"], entry.get("outfit", "基础"))
+            if url:
+                result["character_urls"].append(url)
+            else:
+                result["missing"].append(f"角色:{entry['name']}/{entry.get('outfit', '基础')}")
+
+        scene_url = self.get_shot_frame_url(scene_name, frame_id)
+        if scene_url:
+            result["scene_url"] = scene_url
+        else:
+            result["missing"].append(f"取景框:{scene_name}/{frame_id}")
+
+        return result
 
     def to_dict(self) -> dict:
         return self._read()
