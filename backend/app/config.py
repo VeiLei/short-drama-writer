@@ -23,6 +23,9 @@ class Config:
     JIMENG_API_SECRET: str = os.getenv("JIMENG_API_SECRET", "")
     MINIMAX_API_KEY: str = os.getenv("MINIMAX_API_KEY", "")
     DOUBAO_API_KEY: str = os.getenv("DOUBAO_API_KEY", "")
+    DOUBAO_SEEDANCE_API_KEY: str = os.getenv("DOUBAO_SEEDANCE_API_KEY", "")
+    ARK_API_KEY: str = os.getenv("ARK_API_KEY", "")
+    ARK_BASE_URL: str = os.getenv("ARK_BASE_URL", "https://ark.cn-beijing.volces.com/api/v3")
 
     TOS_ACCESS_KEY: str = os.getenv("TOS_ACCESS_KEY", "")
     TOS_SECRET_KEY: str = os.getenv("TOS_SECRET_KEY", "")
