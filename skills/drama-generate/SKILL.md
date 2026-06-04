@@ -21,6 +21,7 @@ allowed-tools: Read Bash AskUserQuestion Agent
 阶段2（drama-write后）：按需生成取景框 + 变装四视图
 阶段3（drama-write后）：生成每镜头的视频提示词 JSON
 阶段4（提示词就绪）：逐镜头调 Seedance 生成视频
+阶段5：查询素材索引
 ```
 
 ---
@@ -92,7 +93,29 @@ CLI 自动以基础四视图为 reference_image，保持角色面容和体型一
 
 ---
 
-## 阶段4：查询素材索引
+## 阶段4：视频生成
+
+**时机**：视频提示词 JSON 就绪后。
+
+### 4a. 查看视频提示词
+
+```bash
+CLI video-prompt --project <项目目录> --episode 0001
+```
+
+### 4b. 逐镜头生成视频
+
+对每个镜头的 prompt，调用：
+
+```bash
+CLI video-generate --project <项目目录> --prompt "视频prompt..." --ratio 9:16 --duration 10 --refs <图生视频参考图URL,逗号分隔>
+```
+
+CLI 自动 submit → poll → download 到 `素材/视频/`，prompt 超长时用 `--prompt -` 从 stdin 读取。
+
+---
+
+## 阶段5：查询素材索引
 
 随时查看已有素材：
 ```bash
