@@ -5,7 +5,7 @@ AI短剧/短视频生成 Claude Code 插件。
 ## 安装
 
 ```
-/plugin marketplace add <github-user>/<repo-name>
+/plugin marketplace add VeiLei/short-drama-writer
 /plugin install short-drama-writer
 ```
 
