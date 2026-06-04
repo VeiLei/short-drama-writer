@@ -37,6 +37,34 @@ short-drama-writer/
 └── .gitignore
 ```
 
+## 安装插件
+
+### 方式一：从源码安装（推荐）
+
+```bash
+# 克隆仓库
+git clone https://gitee.com/vei_ge/short-drama-writer.git
+
+# 将插件链接到 Claude Code 插件目录
+# Windows
+mklink /D %USERPROFILE%\.claude\plugins\short-drama-writer ^
+  D:\PersonalFiles\Project_Space\short-drama-writer\plugin
+
+# macOS / Linux
+ln -s /path/to/short-drama-writer/plugin ~/.claude/plugins/short-drama-writer
+```
+
+安装后重启 Claude Code，输入 `/drama-init` 即可使用。
+
+### 方式二：从 Marketplace 安装
+
+在 Claude Code 中输入：
+```
+/plugin install short-drama-writer
+```
+
+---
+
 ## 快速开始
 
 ### 1. 环境要求
