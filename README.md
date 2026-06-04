@@ -39,17 +39,34 @@ short-drama-writer/
 
 ## 安装插件
 
+### 方式一：源码安装
+
 ```bash
-# 克隆仓库
 git clone https://gitee.com/vei_ge/short-drama-writer.git
-
-# 将插件目录链接到 Claude Code 插件目录
+# 将 plugin/ 目录链接到 Claude Code 插件目录
 # Windows
-mklink /D %USERPROFILE%\.claude\plugins\short-drama-writer ^
-  插件仓库路径\plugin
-
+mklink /D %USERPROFILE%\.claude\plugins\short-drama-writer 插件路径\plugin
 # macOS / Linux
 ln -s /path/to/short-drama-writer/plugin ~/.claude/plugins/short-drama-writer
+```
+
+### 方式二：Marketplace 安装
+
+先将插件发布到 GitHub Marketplace：
+
+```bash
+# 1. 在 GitHub 创建仓库 short-drama-marketplace
+# 2. 将 plugin/ 目录内容推送上去
+cd plugin
+git init && git add -A && git commit -m "v0.1.0"
+git remote add origin https://github.com/<你的用户名>/short-drama-marketplace.git
+git push -u origin main
+```
+
+之后用户即可安装：
+```
+/plugin marketplace add <你的用户名>/short-drama-marketplace
+/plugin install short-drama-writer
 ```
 
 安装后重启 Claude Code，输入 `/drama-init` 即可使用。
