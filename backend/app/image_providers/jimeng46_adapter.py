@@ -33,6 +33,7 @@ class Jimeng46Adapter(BaseImageProvider):
         self.region = "cn-north-1"
         self.service = "cv"
         self.timeout = httpx.Timeout(300.0, connect=30.0)
+        self._submit_lock = asyncio.Semaphore(1)
 
     def _get_signed_headers(self, method: str, path: str, body: str = "") -> dict:
         host_for_sign = self.host.replace("https://", "").replace("http://", "")
@@ -57,7 +58,8 @@ class Jimeng46Adapter(BaseImageProvider):
         force_single: bool = True,
         **kwargs,
     ) -> ImageResult:
-        task_id = await self._submit_task(prompt, aspect_ratio, reference_images, force_single, **kwargs)
+        async with self._submit_lock:
+            task_id = await self._submit_task(prompt, aspect_ratio, reference_images, force_single, **kwargs)
         return await self._poll_task(task_id, aspect_ratio)
 
     async def _submit_task(
@@ -126,9 +128,21 @@ class Jimeng46Adapter(BaseImageProvider):
                     raise ValueError(f"Jimeng46 poll failed (HTTP {response.status_code}): {err_msg}")
                 data = response.json()
 
-            status = data.get("data", {}).get("status", "")
+            # code != 10000 时 data 为 null（见接口文档：优先判断 code=10000, 然后再判断data.status）
+            if data.get("code") != 10000:
+                logger.warning("[Jimeng46] Poll attempt %d returned code=%s message=%s",
+                             attempt + 1, data.get("code"), data.get("message"))
+                await asyncio.sleep(10)
+                continue
+
+            result_data = data.get("data")
+            if result_data is None:
+                logger.warning("[Jimeng46] Poll attempt %d returned null data, retrying", attempt + 1)
+                await asyncio.sleep(10)
+                continue
+
+            status = result_data.get("status", "")
             if status == "done":
-                result_data = data.get("data", {})
                 image_urls = result_data.get("image_urls", [])
                 b64_data = result_data.get("binary_data_base64", [])
                 image_url = image_urls[0] if image_urls else ""

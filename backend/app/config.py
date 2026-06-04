@@ -28,6 +28,7 @@ class Config:
     TOS_SECRET_KEY: str = os.getenv("TOS_SECRET_KEY", "")
     TOS_BUCKET: str = os.getenv("TOS_BUCKET", "")
     TOS_ENDPOINT: str = os.getenv("TOS_ENDPOINT", "")
+    TOS_REGION: str = os.getenv("TOS_REGION", "cn-beijing")
 
     STORAGE_DIR: str = os.getenv("STORAGE_DIR", "./storage")
 

@@ -8,8 +8,9 @@ allowed-tools: Read Bash AskUserQuestion Agent
 
 ## 前置条件
 
-- 后端已启动：`cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8001`
 - 后端 `.env` 已配置即梦 API Key
+- CLI 入口：`d:/PersonalFiles/Project_Space/short-drama-writer/backend/.venv/Scripts/python -m app.cli`
+- 以下用 `CLI` 代指上述路径
 
 ---
 
@@ -40,11 +41,9 @@ CG游戏角色原画风格，半写实渲染，清晰轮廓线，平涂上色，
 保持CG游戏角色原画质感，非真人。
 ```
 
-调用：
+调用（逐个角色执行，一次一个）：
 ```bash
-curl -X POST http://localhost:8001/api/generate/character/four-views \
-  -H "Content-Type: application/json" \
-  -d '{"project_root": "<项目目录>", "characters": [{"name":"林若雪", "prompt":"..."}]}'
+CLI four-views --project <项目目录> --name <角色名> --prompt "..."
 ```
 
 自动记入 `.drama/assets.json`，outfit="基础"。
@@ -60,11 +59,9 @@ curl -X POST http://localhost:8001/api/generate/character/four-views \
 竖屏9:16构图，展示场景全貌。
 ```
 
-调用：
+调用（逐个场景执行）：
 ```bash
-curl -X POST http://localhost:8001/api/generate/scene/master \
-  -H "Content-Type: application/json" \
-  -d '{"project_root": "<项目目录>", "scenes": [{"name":"咖啡厅", "prompt":"..."}]}'
+CLI scene-master --project <项目目录> --name <场景名> --prompt "..."
 ```
 
 ---
@@ -78,35 +75,20 @@ curl -X POST http://localhost:8001/api/generate/scene/master \
 drama-write 的分镜流图指定了每个镜头使用的取景框。Claude 提取去重后的取景框清单，逐个检查 `assets.json`，缺失的调用：
 
 ```bash
-curl -X POST http://localhost:8001/api/generate/scene/shot-frame \
-  -H "Content-Type: application/json" \
-  -d '{
-    "project_root": "<项目目录>",
-    "frames": [
-      {"scene_name":"咖啡厅", "frame_id":"coffee_bar_2shot", "frame_type":"two_shot",
-       "prompt": "吧台中景近景：木质吧台占画面下1/3，酒架背景。空镜无人物。参考全景主图的空间布局，仅推进镜头到吧台区域。"}
-    ]
-  }'
+CLI shot-frame --project <项目目录> --scene <场景名> --frame-id <frame_id> --frame-type <type> --prompt "..."
 ```
 
-后端自动以场景 master 图为 reference_image。
+CLI 自动以场景 master 图为 reference_image。
 
 ### 3b. 缺失变装四视图
 
 data-agent 输出中 `costume_updates` 标注了新着装。对每个新着装：
 
 ```bash
-curl -X POST http://localhost:8001/api/generate/character/variant \
-  -H "Content-Type: application/json" \
-  -d '{
-    "project_root": "<项目目录>",
-    "characters": [
-      {"name":"林若雪", "outfit":"晚宴礼服", "prompt": "CG游戏角色原画风格...新着装：黑色晚礼服长裙...以基础四视图为参考，仅更新着装。"}
-    ]
-  }'
+CLI variant --project <项目目录> --name <角色名> --outfit <着装名> --prompt "..."
 ```
 
-后端自动以基础四视图为 reference_image，保持角色面容和体型一致。
+CLI 自动以基础四视图为 reference_image，保持角色面容和体型一致。
 
 ---
 
@@ -114,7 +96,7 @@ curl -X POST http://localhost:8001/api/generate/character/variant \
 
 随时查看已有素材：
 ```bash
-curl "http://localhost:8001/api/generate/assets?project_root=<项目目录>"
+CLI assets --project <项目目录>
 ```
 
 ---
@@ -124,4 +106,6 @@ curl "http://localhost:8001/api/generate/assets?project_root=<项目目录>"
 - 取景框 = 空镜，没有人
 - 角色四视图 = 角色+白底，没有场景背景
 - 视频生成时取景框(TOS) + 角色(TOS) + 站位指令 → Seedance
-- 每个素材生成前检查 assets.json，不重复生成
+- 每个素材生成前 CLI 自动检查 assets.json，已存在则跳过
+- prompt 超长时用临时文件传入：`--prompt @/tmp/prompt.txt`
+- **严禁在项目目录创建 .py 脚本**，始终使用 CLI
