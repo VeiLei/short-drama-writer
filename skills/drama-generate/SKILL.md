@@ -9,8 +9,8 @@ allowed-tools: Read Bash AskUserQuestion Agent
 ## 前置条件
 
 - 后端 `.env` 已配置即梦 API Key
-- CLI 入口：`d:/PersonalFiles/Project_Space/short-drama-writer/backend/.venv/Scripts/python -m app.cli`
-- 以下用 `CLI` 代指上述路径
+- CLI 入口：`${CLAUDE_PLUGIN_ROOT}/../backend/.venv/Scripts/python -m app.cli`（Windows）或 `${CLAUDE_PLUGIN_ROOT}/../backend/.venv/bin/python -m app.cli`（macOS/Linux）
+- 以下用 `CLI` 代指上述路径。如通过 Marketplace 安装且无 backend 目录，先 `git clone https://gitee.com/vei_ge/short-drama-writer.git` 获取后端代码
 
 ---
 
