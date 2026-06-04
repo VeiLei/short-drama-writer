@@ -1,0 +1,3 @@
+# short-drama-writer plugin scripts
+# No third-party dependencies — stdlib only (json, os, sys, re, datetime)
+# Requires Python 3.10+

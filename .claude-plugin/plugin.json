@@ -1,0 +1,8 @@
+{
+  "name": "short-drama-writer",
+  "version": "0.1.0",
+  "description": "AI短剧/短视频生成系统 (skills + agents + knowledge base + data chain)",
+  "author": { "name": "jwge" },
+  "keywords": ["short-drama", "ai-video", "claude-code", "skills", "agents"],
+  "license": "MIT"
+}

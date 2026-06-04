@@ -1,0 +1,156 @@
+---
+name: drama-write
+description: Produces a single episode script. Full execution: context research → draft → review → polish → submit. Includes shot flow map and ASCII spatial layout generation.
+allowed-tools: Read Write Edit Bash Agent
+---
+
+Produce one episode script with full shot flow map and spatial layout. This is the core creative pipeline.
+
+## Modes
+
+| Mode | Flow |
+|------|------|
+| Default | Steps 1-2-3-4-5 |
+| `--fast` | Steps 1-2-3(light check only)-4-5 |
+| `--minimal` | Steps 1-2-4(format fix only)-5 |
+
+## Workflow
+
+### Preflight
+
+Determine episode number (ask user or read current state):
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/state_manager.py get
+```
+
+### Step 1: Context Research (context-agent)
+
+**MUST delegate to `short-drama-writer:context-agent` via Agent tool.**
+
+```
+Agent(
+  subagent_type: "short-drama-writer:context-agent",
+  prompt: "Episode {episode_number}, project root: {project_root}, plugin scripts: ${CLAUDE_PLUGIN_ROOT}/scripts"
+)
+```
+
+The context-agent outputs a 5-section writing task book. This becomes the creative brief for Step 2.
+
+### Step 2: Draft
+
+Write the episode script following `templates/episode-script.md`. The draft must include:
+
+**For each scene:**
+1. Scene header (location, time, characters)
+2. ASCII spatial layout diagram
+3. Shot flow map (3-5 shots with position/facing/outfit tracking)
+
+**For each shot:**
+1. Frame type (WIDE/MS/CU/ECU)
+2. Visual description
+3. Character position table (position, position_change, facing, outfit)
+4. Action description
+5. Dialogue (if any)
+6. Continuity note (how it connects to the previous shot)
+
+**Writing rules:** Follow `references/script-generation-rules.md` for all constraints. Key points:
+- 钩子：前5秒必须有异常/冲突/悬念
+- 每场戏必须有冲突，情绪不能平
+- 每集至少一次认知反转，结尾必须未闭合
+- Show emotion through behavior, not labels
+- No AI cliché words (缓缓, 微微, 渐渐, 悄然, 深邃, 璀璨)
+- No paragraph-ending reflective/总结 sentences
+- No "殊不知/little did he know" constructions
+- 每Scene至少1句"子弹台词"
+- 对白短句为主，禁止纯信息播报模式
+- 角色状态和空间位置必须跨场景延续
+
+Save the draft to `剧本/第{episode_number}集-{title}.md`.
+
+Save the shot flow map to `分镜/第{episode_number}集-分镜.json`.
+
+**Generate prompt JSONs for each shot:** For every shot in the flow map, assemble a video generation prompt following `references/video-prompt-rules.md` 8-dimension framework (主体描述/动作运动/场景环境/镜头语言/光影色调/风格情绪/时间节奏/叙事约束). Save to `提示词/第{episode_number}集-视频提示词.json` using `templates/shot-prompt.json` format. Each shot entry must include:
+- `positive`: full 8-dimension prompt in Chinese
+- `negative`: negative prompt (avoid abstract terms, faces, text, watermarks)
+- `spatial_anchors`: scene key landmarks
+- `lighting_mood`: from the scene's lighting setup
+- `character_references`: [{name, outfit}] — characters and their current outfit in this shot
+- `scene_reference`: {scene_name, frame_id} — which shot frame to use as background
+
+**Extract shot frames and variants:** From all shots across all scenes, derive two lists:
+
+1. **取景框清单**（去重）：对每个 `{scene_name, frame_id}` 组合，查询 `assets.json` 是否已存在。缺失项写入 `提示词/第{episode_number}集-缺失取景框.json`：
+```json
+[{"scene_name": "咖啡厅", "frame_id": "coffee_bar_2shot", "frame_type": "two_shot",
+  "prompt": "吧台中景：木质吧台占画面下1/3，酒架背景。空镜无人物。"}]
+```
+
+2. **变装清单**（去重）：对每个 `{character, outfit}` 组合，查询 `assets.json` 是否已有该着装版本。缺失项写入 `提示词/第{episode_number}集-缺失变装.json`：
+```json
+[{"name": "林若雪", "outfit": "晚宴礼服",
+  "prompt": "CG游戏角色原画风格...新着装：黑色晚礼服长裙..."}]
+```
+
+取景框类型判断依据（从 shot 的 frame_type + 角色数量反推）：
+
+| shot 特征 | frame_id 后缀 | frame_type |
+|----------|-------------|------------|
+| 本场景第1个镜头 | `_{场景}_master` | establishing |
+| frame_type=MS 且 characters≥2 | `_{区域}_2shot` | two_shot |
+| frame_type=CU/MCU 且 characters=1 | `_{区域}_cu` | single_closeup |
+| facing 中一方看向另一方 | `_{区域}_os` | over_shoulder |
+| frame_type=ECU 拍物体 | `_{物体}_ecu` | insert_cu |
+
+### Step 3: Review (reviewer agent)
+
+**MUST delegate to `short-drama-writer:reviewer` via Agent tool.**
+
+```
+Agent(
+  subagent_type: "short-drama-writer:reviewer",
+  prompt: "Review episode script: {script_path}, project root: {project_root}, plugin scripts: ${CLAUDE_PLUGIN_ROOT}/scripts"
+)
+```
+
+The reviewer outputs a JSON issue list. Save raw review:
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/review_saver.py save {episode_number} '<review_json>'
+```
+
+**Blocking gate:** If any issue has `blocking: true`, the draft MUST return to Step 2 for fixes. Non-blocking issues can be handled in Step 4.
+
+### Step 4: Polish
+
+Address all non-blocking issues from review:
+1. Fix AI-flavor issues (apply `references/ai-flavor-checklist.md`)
+2. Verify against `references/script-generation-rules.md` (DNA, dialogue, continuity)
+3. Verify shot continuity (apply `references/cinematic-rules.md`)
+4. Check dialogue authenticity (apply genre-specific dialogue guide)
+5. Format consistency (ensure template structure is clean)
+
+### Step 5: Submit
+
+**5.1 Data Extraction** — delegate to `short-drama-writer:data-agent`:
+```
+Agent(
+  subagent_type: "short-drama-writer:data-agent",
+  prompt: "Extract data from: {script_path}, project root: {project_root}, plugin scripts: ${CLAUDE_PLUGIN_ROOT}/scripts"
+)
+```
+
+**5.2 Commit** — run the commit script with the data-agent output:
+```bash
+python ${CLAUDE_PLUGIN_ROOT}/scripts/chapter_commit.py {episode_number}
+```
+
+Then manually update memory files using the data-agent JSON output via Python scripts.
+
+**5.3 Sufficiency Gate:**
+- [ ] Episode script file exists at `剧本/第{episode_number}集-*.md`
+- [ ] Shot flow map JSON exists at `分镜/第{episode_number}集-分镜.json`
+- [ ] Video prompt JSON exists at `提示词/第{episode_number}集-视频提示词.json`
+- [ ] Missing shot frames JSON exists at `提示词/第{episode_number}集-缺失取景框.json`（空数组=全就绪）
+- [ ] Missing variants JSON exists at `提示词/第{episode_number}集-缺失变装.json`（空数组=全就绪）
+- [ ] Review report exists at `审查报告/第{episode_number}集审查报告.md`
+- [ ] ALL blocking issues resolved
+- [ ] Memory files updated
