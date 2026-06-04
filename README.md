@@ -52,20 +52,8 @@ ln -s /path/to/short-drama-writer/plugin ~/.claude/plugins/short-drama-writer
 
 ### 方式二：Marketplace 安装
 
-先将插件发布到 GitHub Marketplace：
-
-```bash
-# 1. 在 GitHub 创建仓库 short-drama-marketplace
-# 2. 将 plugin/ 目录内容推送上去
-cd plugin
-git init && git add -A && git commit -m "v0.1.0"
-git remote add origin https://github.com/<你的用户名>/short-drama-marketplace.git
-git push -u origin main
 ```
-
-之后用户即可安装：
-```
-/plugin marketplace add <你的用户名>/short-drama-marketplace
+/plugin marketplace add VeiLei/short-drama-writer
 /plugin install short-drama-writer
 ```
 
