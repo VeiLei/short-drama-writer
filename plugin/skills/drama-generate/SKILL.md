@@ -9,8 +9,15 @@ allowed-tools: Read Bash AskUserQuestion Agent
 ## 前置条件
 
 - 后端 `.env` 已配置即梦 API Key
-- CLI 入口：`${CLAUDE_PLUGIN_ROOT}/../backend/.venv/Scripts/python -m app.cli`（Windows）或 `${CLAUDE_PLUGIN_ROOT}/../backend/.venv/bin/python -m app.cli`（macOS/Linux）
-- 以下用 `CLI` 代指上述路径。如通过 Marketplace 安装且无 backend 目录，先 `git clone https://gitee.com/vei_ge/short-drama-writer.git` 获取后端代码
+- 以下用 `CLI` 代指后端 CLI 入口。**按顺序查找**：
+
+  ```
+  1. cd d:/PersonalFiles/Project_Space/short-drama-writer/backend && .venv/Scripts/python -m app.cli  ← 本地开发后端（优先）
+  2. unix: cd ${CLAUDE_PLUGIN_ROOT}/../backend/backend && .venv/bin/python -m app.cli
+  3. win:  cd ${CLAUDE_PLUGIN_ROOT}/../backend/backend && .venv/Scripts/python -m app.cli
+  ```
+
+  路径 1 的 .venv 存在则直接用；不存在则依次尝试 2/3。均不存在时报错，不要 clone。
 
 ---
 
@@ -18,9 +25,9 @@ allowed-tools: Read Bash AskUserQuestion Agent
 
 ```
 阶段1（drama-init后）：角色基础四视图 + 场景全景图
-阶段2（drama-write后）：按需生成取景框 + 变装四视图
+阶段2（drama-write后）：按需生成取景框 + 变装四视图 + 道具参考图
 阶段3（drama-write后）：生成每镜头的视频提示词 JSON
-阶段4（提示词就绪）：逐镜头调 Seedance 生成视频
+阶段4（提示词就绪）：逐镜头调 Seedance 生成视频（自动注入道具参考图）
 阶段5：查询素材索引
 ```
 
@@ -91,6 +98,25 @@ CLI variant --project <项目目录> --name <角色名> --outfit <着装名> --p
 
 CLI 自动以基础四视图为 reference_image，保持角色面容和体型一致。
 
+### 3c. 缺失道具参考图
+
+**时机**：drama-write 完成后，读取 `提示词/第{episode_number}集-缺失道具.json`。
+
+对每个缺失道具，生成参考图：
+
+```
+CG游戏原画风格，半写实渲染，{道具描述}。
+纯白背景，无人物，正上方或侧45°产品图视角，展示全部细节。
+```
+道具名示例：`祖传项链`、`加密U盘`、`订婚戒指`
+
+调用（逐个道具执行）：
+```bash
+CLI prop-ref --project <项目目录> --name <道具名> --prompt "..." --scene <关联场景>
+```
+
+CLI 自动记入 `.drama/assets.json` 的 `props` 段，同道具名替换旧条目。
+
 ---
 
 ## 阶段4：视频生成
@@ -105,13 +131,13 @@ CLI video-prompt --project <项目目录> --episode 0001
 
 ### 4b. 逐镜头生成视频
 
-对每个镜头的 prompt，调用：
+对每个镜头的 prompt，调用（`--duration` 从视频提示词 JSON 的 `video_params.duration_sec` 读取，**不要写死**）：
 
 ```bash
-CLI video-generate --project <项目目录> --prompt "视频prompt..." --ratio 9:16 --duration 10 --refs <图生视频参考图URL,逗号分隔>
+CLI video-generate --project <项目目录> --episode <集号> --shot-id <shot_id> --scene <场景名> --frame-id <frame_id>
 ```
 
-CLI 自动 submit → poll → download 到 `素材/视频/`，prompt 超长时用 `--prompt -` 从 stdin 读取。
+CLI 自动从 JSON 读取 duration/ratio/refs、submit → poll → download 到 `素材/视频/`。
 
 ---
 

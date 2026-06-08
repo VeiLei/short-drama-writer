@@ -1,11 +1,12 @@
 """Drama asset generation CLI.
 
 Usage:
-  python -m app.cli four-views  --project . --name <角色名> --prompt <prompt>
-  python -m app.cli variant     --project . --name <角色名> --outfit <着装> --prompt <prompt>
+  python -m app.cli four-views   --project . --name <角色名> --prompt <prompt>
+  python -m app.cli variant      --project . --name <角色名> --outfit <着装> --prompt <prompt>
   python -m app.cli scene-master --project . --name <场景名> --prompt <prompt>
-  python -m app.cli shot-frame  --project . --scene <场景> --frame-id <id> --frame-type <type> --prompt <prompt>
-  python -m app.cli assets      --project .
+  python -m app.cli shot-frame   --project . --scene <场景> --frame-id <id> --frame-type <type> --prompt <prompt>
+  python -m app.cli prop-ref     --project . --name <道具名> --prompt <prompt>
+  python -m app.cli assets       --project .
 
 Prompt can be passed inline or read from a file / stdin:
   --prompt "text"
@@ -17,6 +18,7 @@ Prompt can be passed inline or read from a file / stdin:
 import argparse
 import asyncio
 import base64
+import json
 import logging
 import sys
 from pathlib import Path
@@ -25,6 +27,12 @@ from app.image_providers.jimeng46_adapter import jimeng
 from app.utils.tos import upload_to_tos
 from app.utils.asset_index import AssetIndex
 from app.video_providers.seedance_adapter import seedance as video_provider
+
+# Force UTF-8 stdout to avoid GBK print errors on Windows
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")
 logger = logging.getLogger("cli")
@@ -172,6 +180,31 @@ async def cmd_shot_frame(args):
     print(f"✓ {args.scene}/{args.frame_id} → {tos_url}")
 
 
+async def cmd_prop_ref(args):
+    project_root = resolve_project(args.project)
+    prompt = read_prompt(args.prompt)
+    index = AssetIndex(project_root)
+
+    if index.prop_exists(args.name):
+        print(f"⊙ 道具 {args.name} 参考图已存在，跳过")
+        return
+
+    logger.info("Prop ref: %s", args.name)
+    image_url, tos_url, img_bytes = await gen_and_upload(prompt, args.ratio)
+
+    local_dir = Path(project_root) / "素材" / "道具"
+    local_dir.mkdir(parents=True, exist_ok=True)
+    safe_name = args.name.replace("/", "_").replace(" ", "_")
+    local_path = str(local_dir / f"{safe_name}.png")
+    if img_bytes:
+        with open(local_path, "wb") as f:
+            f.write(img_bytes)
+
+    index.add_prop(args.name, tos_url=tos_url, local_path=local_path,
+                   scene_name=args.scene or "", prompt=prompt)
+    print(f"✓ 道具 {args.name} → {tos_url}")
+
+
 def cmd_assets(args):
     project_root = resolve_project(args.project)
     index = AssetIndex(project_root)
@@ -179,6 +212,7 @@ def cmd_assets(args):
 
     chars = data.get("characters", {})
     scenes = data.get("scenes", {})
+    props = data.get("props", {})
 
     print(f"Project: {project_root}")
     print(f"Updated: {data.get('updated_at', 'N/A')}")
@@ -204,18 +238,116 @@ def cmd_assets(args):
     else:
         print("  (空)")
 
+    print()
+    print("── 道具 ──")
+    if props:
+        for name, pdata in props.items():
+            scene = pdata.get("scene_name", "")
+            scene_tag = f" [{scene}]" if scene else ""
+            print(f"  {name}{scene_tag} → {pdata.get('tos_url', '?')[:60]}")
+    else:
+        print("  (空)")
+
 
 async def cmd_video_generate(args):
     """生成视频：submit task 到 Seedance → poll 直到完成 → 下载到本地。"""
     import requests as req
 
     project_root = resolve_project(args.project)
-    prompt = read_prompt(args.prompt)
-    refs = [r.strip() for r in (args.refs or "").split(",") if r.strip()] if args.refs else None
+    index = AssetIndex(project_root)
 
-    logger.info("Video generate: ratio=%s duration=%s", args.ratio, args.duration)
+    # Resolve prompt and refs
+    if args.episode and args.shot_id:
+        # Auto-lookup from video prompt JSON + assets.json
+        prompt_dir = Path(project_root) / "提示词"
+        prompt_file = prompt_dir / f"第{args.episode}集-视频提示词.json"
+        if not prompt_file.exists():
+            sys.exit(f"Video prompt JSON not found: {prompt_file}")
+        data = json.loads(prompt_file.read_text(encoding="utf-8"))
+        shot = next((s for s in data.get("shots", []) if s.get("shot_id") == args.shot_id), None)
+        if not shot:
+            sys.exit(f"Shot {args.shot_id} not found in episode {args.episode}")
+        shot_prompt = shot["prompt"]
+        video_params = shot.get("video_params", {})
+
+        # Build prompt text
+        prompt = shot_prompt.get("positive", read_prompt(args.prompt or ""))
+
+        # ── Resolve scene ref ──
+        scene_url = ""
+        if args.scene:
+            if args.frame_id:
+                scene_url = index.get_shot_frame_url(args.scene, args.frame_id)
+            else:
+                scene_url = index.get_scene_master_url(args.scene)
+            if scene_url:
+                logger.info("  scene ref: %s/%s → %s", args.scene, args.frame_id or "master", scene_url[:80])
+            else:
+                logger.warning("  scene not found: %s/%s", args.scene, args.frame_id or "master")
+
+        # ── Resolve character refs ──
+        char_refs = shot_prompt.get("character_references", [])
+        char_urls = []
+        char_names = []
+        for cr in char_refs:
+            clean_name = cr.get("name", "").split("（")[0].split("(")[0].strip()
+            clean_outfit = cr.get("outfit", "基础").split("，")[0].split(",")[0].strip()
+            tos = index.get_character_tos_url(clean_name, clean_outfit)
+            if tos:
+                char_urls.append(tos)
+                char_names.append(clean_name)
+                logger.info("  matched character: %s/%s → %s", clean_name, clean_outfit, tos[:80])
+            else:
+                logger.warning("  character not found: %s/%s", clean_name, clean_outfit)
+
+        # ── Resolve prop refs ──
+        prop_refs = shot_prompt.get("prop_references", [])
+        prop_urls = []
+        prop_names = []
+        for pr in prop_refs:
+            prop_name = pr if isinstance(pr, str) else pr.get("name", "")
+            tos = index.get_prop_tos_url(prop_name)
+            if tos:
+                prop_urls.append(tos)
+                prop_names.append(prop_name)
+                logger.info("  matched prop: %s → %s", prop_name, tos[:80])
+            else:
+                logger.warning("  prop not found: %s", prop_name)
+
+        # ── Build ref_urls: scene → characters → props ──
+        ref_urls = (scene_url and [scene_url] or []) + char_urls + prop_urls
+        img_idx = 0
+        ref_parts = []
+
+        if scene_url:
+            img_idx += 1
+            ref_parts.append(f"参考图{img_idx}是场景空镜，场景环境以参考图{img_idx}为准")
+
+        for i, name in enumerate(char_names):
+            img_idx += 1
+            ref_parts.append(f"参考图{img_idx}是角色立绘（{name}），角色外貌以参考图为基准")
+
+        for i, name in enumerate(prop_names):
+            img_idx += 1
+            ref_parts.append(f"参考图{img_idx}是道具参考图（{name}），道具造型以参考图为基准")
+
+        if ref_parts:
+            prompt = "。".join(ref_parts) + "。" + prompt
+
+        if not args.ratio:
+            args.ratio = video_params.get("aspect_ratio", "9:16")
+        if not args.duration:
+            args.duration = video_params.get("duration_sec", 10)
+    else:
+        prompt = read_prompt(args.prompt)
+        ref_urls = [r.strip() for r in (args.refs or "").split(",") if r.strip()] if args.refs else None
+        if args.duration is None:
+            args.duration = 10
+
+    logger.info("Video generate: ratio=%s duration=%s refs=%d", args.ratio, args.duration,
+                len(ref_urls) if ref_urls else 0)
     result = await video_provider.generate(
-        prompt, reference_images=refs, ratio=args.ratio, duration=args.duration,
+        prompt, reference_images=ref_urls or None, ratio=args.ratio, duration=args.duration,
     )
 
     video_dir = Path(project_root) / "素材" / "视频"
@@ -291,15 +423,27 @@ def main():
     p.add_argument("--prompt", required=True, help="Image prompt (use '-' for stdin, '@file' for file)")
     p.add_argument("--ratio", default="9:16", help="Aspect ratio (default: 9:16)")
 
+    p = sub.add_parser("prop-ref", help="Generate prop reference image")
+    p.add_argument("--project", required=True)
+    p.add_argument("--name", required=True, help="Prop name")
+    p.add_argument("--prompt", required=True, help="Image prompt (use '-' for stdin, '@file' for file)")
+    p.add_argument("--ratio", default="1:1", help="Aspect ratio (default: 1:1)")
+    p.add_argument("--scene", default=None, help="Associated scene name (optional)")
+
     p = sub.add_parser("assets", help="List all generated assets")
     p.add_argument("--project", required=True, help="Project directory path")
 
     p = sub.add_parser("video-generate", help="Generate video via Seedance")
     p.add_argument("--project", required=True, help="Project directory path")
-    p.add_argument("--prompt", required=True, help="Video prompt (use '-' for stdin, '@file' for file)")
+    p.add_argument("--prompt", default="", help="Video prompt (use '-' for stdin, '@file' for file)")
     p.add_argument("--ratio", default="9:16", help="Aspect ratio (default: 9:16)")
-    p.add_argument("--duration", type=int, default=10, help="Video duration in seconds (default: 10)")
+    p.add_argument("--duration", type=int, default=None, help="Video duration in seconds (default: read from video_params.duration_sec, fallback 10)")
     p.add_argument("--refs", default=None, help="Comma-separated reference image URLs")
+    # Auto-lookup mode: read from video prompt JSON + assets.json
+    p.add_argument("--episode", default=None, help="Episode ID (e.g. 0001) — auto-resolve prompt+refs")
+    p.add_argument("--shot-id", default=None, help="Shot ID (e.g. S1_F01) — used with --episode")
+    p.add_argument("--scene", default=None, help="Scene name for auto scene ref lookup")
+    p.add_argument("--frame-id", default=None, help="Shot frame ID for auto scene ref lookup")
 
     p = sub.add_parser("video-prompt", help="Show video prompt JSON for an episode")
     p.add_argument("--project", required=True, help="Project directory path")

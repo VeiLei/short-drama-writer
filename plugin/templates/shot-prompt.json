@@ -12,12 +12,14 @@
         "spatial_anchors": "",
         "lighting_mood": "",
         "character_references": [],
-        "scene_reference": ""
+        "scene_reference": "",
+        "prop_references": []
       },
       "video_params": {
-        "duration_sec": 4,
+        "duration_sec": 6,
         "aspect_ratio": "9:16",
-        "fps": 24
+        "fps": 24,
+        "_duration_guide": "禁止一律 4s。范围 4-15s：单一微动作 3-4s / 连续多步 5-6s / 多角色交互 6-8s / 一镜情绪累积 8-12s。参考 video-prompt-rules.md §7"
       }
     }
   ]

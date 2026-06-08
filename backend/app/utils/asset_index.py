@@ -146,6 +146,39 @@ class AssetIndex:
     def has_shot_frame(self, scene_name: str, frame_id: str) -> bool:
         return self.get_shot_frame(scene_name, frame_id) is not None
 
+    # ── 道具 ─────────────────────────────────────────────────
+
+    def add_prop(self, name: str, tos_url: str, local_path: str = "",
+                 scene_name: str = "", prompt: str = "") -> str:
+        """添加道具参考图。同道具名替换旧条目。"""
+        data = self._read()
+        props = data.setdefault("props", {})
+        props[name] = {
+            "name": name,
+            "tos_url": tos_url,
+            "local_path": local_path,
+            "scene_name": scene_name,
+            "prompt": prompt,
+            "created_at": datetime.now().isoformat(),
+        }
+        self._write(data)
+        return name
+
+    def get_prop(self, name: str) -> Optional[dict]:
+        data = self._read()
+        return data.get("props", {}).get(name)
+
+    def get_prop_tos_url(self, name: str) -> str:
+        p = self.get_prop(name)
+        return p["tos_url"] if p else ""
+
+    def prop_exists(self, name: str) -> bool:
+        return self.get_prop(name) is not None
+
+    def list_props(self) -> list[str]:
+        data = self._read()
+        return list(data.get("props", {}).keys())
+
     # ── 批量查询 ──────────────────────────────────────────────
 
     def get_reference_urls(self, character_entries: list[dict],
