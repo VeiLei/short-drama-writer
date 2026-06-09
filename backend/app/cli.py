@@ -186,7 +186,11 @@ async def cmd_shot_frame(args):
     master = index.get_scene_master(args.scene)
     refs = [master["tos_url"]] if master and master.get("tos_url") else None
 
-    logger.info("Shot frame: %s / %s (%s)", args.scene, args.frame_id, args.frame_type)
+    fixed_objects = None
+    if args.fixed_objects:
+        fixed_objects = [s.strip() for s in args.fixed_objects.split(",") if s.strip()]
+
+    logger.info("Shot frame: %s / %s (%s) fixed=%s", args.scene, args.frame_id, args.frame_type, fixed_objects)
     image_url, tos_url, img_bytes = await gen_and_upload(prompt, args.ratio, refs)
 
     local_dir = Path(project_root) / "素材" / "场景"
@@ -197,8 +201,12 @@ async def cmd_shot_frame(args):
             f.write(img_bytes)
 
     index.add_shot_frame(args.scene, args.frame_id, args.frame_type,
-                         tos_url=tos_url, local_path=local_path, prompt=prompt)
-    print(f"✓ {args.scene}/{args.frame_id} → {tos_url}")
+                         tos_url=tos_url, local_path=local_path,
+                         prompt=prompt, fixed_objects=fixed_objects)
+    if fixed_objects:
+        print(f"✓ {args.scene}/{args.frame_id} ({len(fixed_objects)} 固定物) → {tos_url}")
+    else:
+        print(f"✓ {args.scene}/{args.frame_id} → {tos_url}")
 
 
 async def cmd_prop_ref(args):
@@ -478,6 +486,7 @@ def main():
     p.add_argument("--frame-type", required=True, help="Frame type (e.g. two_shot, establishing)")
     p.add_argument("--prompt", required=True, help="Image prompt (use '-' for stdin, '@file' for file)")
     p.add_argument("--ratio", default="9:16", help="Aspect ratio (default: 9:16)")
+    p.add_argument("--fixed-objects", default=None, help="Comma-separated fixed object ids from scene.spatial_layout")
 
     p = sub.add_parser("prop-ref", help="Generate prop reference image")
     p.add_argument("--project", required=True)
