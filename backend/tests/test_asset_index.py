@@ -69,3 +69,20 @@ def test_validate_spatial_anchors_no_layout(tmp_project):
     valid, invalid = idx.validate_spatial_anchors("客厅", {"any_key": "desc"})
     assert valid == []
     assert invalid == ["any_key"]
+
+
+def test_add_scene_master_with_layout(tmp_project, sample_scene_layout):
+    idx = AssetIndex(tmp_project)
+    idx.add_scene_master("客厅", tos_url="https://tos.example/x.png",
+                         local_path="素材/场景/客厅_master.png",
+                         prompt="客厅全景 prompt", layout=sample_scene_layout)
+
+    assert idx.get_scene_master_url("客厅") == "https://tos.example/x.png"
+    assert idx.get_scene_layout("客厅") == sample_scene_layout
+
+
+def test_add_scene_master_without_layout_keeps_none(tmp_project):
+    idx = AssetIndex(tmp_project)
+    idx.add_scene_master("客厅", tos_url="https://tos.example/x.png")
+
+    assert idx.get_scene_layout("客厅") is None

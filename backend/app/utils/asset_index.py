@@ -81,8 +81,10 @@ class AssetIndex:
     # ── 场景 ─────────────────────────────────────────────────
 
     def add_scene_master(self, name: str, tos_url: str, local_path: str = "",
-                         prompt: str = "") -> str:
-        """添加场景全景参考图。已存在则替换。"""
+                         prompt: str = "", layout: Optional[dict] = None) -> str:
+        """添加场景全景参考图。已存在则替换。
+        若提供 layout，则一次性写入 master + spatial_layout。
+        """
         data = self._read()
         scenes = data.setdefault("scenes", {})
         scene_entry = scenes.setdefault(name, {"master": None, "shot_frames": []})
@@ -92,6 +94,8 @@ class AssetIndex:
             "prompt": prompt,
             "created_at": datetime.now().isoformat(),
         }
+        if layout is not None:
+            scene_entry["spatial_layout"] = layout
         self._write(data)
         return f"{name}/master"
 
