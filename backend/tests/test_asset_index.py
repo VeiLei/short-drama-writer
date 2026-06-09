@@ -42,3 +42,30 @@ def test_get_fixed_object_ids_empty_when_no_layout(tmp_project):
 def test_get_fixed_object_ids_missing_scene(tmp_project):
     idx = AssetIndex(tmp_project)
     assert idx.get_fixed_object_ids("不存在的场景") == []
+
+
+def test_validate_spatial_anchors_all_valid(tmp_project, sample_scene_layout):
+    idx = AssetIndex(tmp_project)
+    idx.add_scene_layout("客厅", sample_scene_layout)
+
+    anchors = {"sofa_L": "画面左下", "tv_wall": "后景", "center_floor": "中央"}
+    valid, invalid = idx.validate_spatial_anchors("客厅", anchors)
+    assert valid == ["sofa_L", "tv_wall", "center_floor"]
+    assert invalid == []
+
+
+def test_validate_spatial_anchors_some_invalid(tmp_project, sample_scene_layout):
+    idx = AssetIndex(tmp_project)
+    idx.add_scene_layout("客厅", sample_scene_layout)
+
+    anchors = {"sofa_L": "画面左下", "fake_object": "不存在", "tv_wall": "后景"}
+    valid, invalid = idx.validate_spatial_anchors("客厅", anchors)
+    assert set(valid) == {"sofa_L", "tv_wall"}
+    assert invalid == ["fake_object"]
+
+
+def test_validate_spatial_anchors_no_layout(tmp_project):
+    idx = AssetIndex(tmp_project)
+    valid, invalid = idx.validate_spatial_anchors("客厅", {"any_key": "desc"})
+    assert valid == []
+    assert invalid == ["any_key"]

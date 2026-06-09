@@ -127,6 +127,18 @@ class AssetIndex:
         ids += [zone["id"] for zone in layout.get("walkable_zones", []) if "id" in zone]
         return ids
 
+    def validate_spatial_anchors(self, scene_name: str, anchors: dict) -> tuple[list[str], list[str]]:
+        """校验 spatial_anchors 键是否都在该场景的 layout 内。
+
+        Returns:
+            (valid_keys, invalid_keys) — 拆分两个列表便于报告
+        """
+        valid_ids = set(self.get_fixed_object_ids(scene_name))
+        valid, invalid = [], []
+        for key in anchors:
+            (valid if key in valid_ids else invalid).append(key)
+        return valid, invalid
+
     def add_shot_frame(self, scene_name: str, frame_id: str, frame_type: str,
                        tos_url: str, local_path: str = "", prompt: str = "") -> str:
         """添加场景取景框。frame_id 如 'coffee_bar_2shot'，parent 固定为 scene master。"""
