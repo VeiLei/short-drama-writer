@@ -334,6 +334,15 @@ async def cmd_video_generate(args):
         if ref_parts:
             prompt = "。".join(ref_parts) + "。" + prompt
 
+        # ── Narration mode: prepend style prefix ──
+        if getattr(args, "mode", None) == "narration":
+            narration_prefix = (
+                "镜头以自然讲述的视角展开，人物口型与节奏与旁白同步，"
+                "画面有适度的镜头呼吸感与场景氛围，环境音清晰。"
+            )
+            prompt = narration_prefix + prompt
+            logger.info("  mode=narration: prefix injected")
+
         if not args.ratio:
             args.ratio = video_params.get("aspect_ratio", "9:16")
         if not args.duration:
@@ -475,6 +484,8 @@ def main():
     p.add_argument("--shot-id", default=None, help="Shot ID (e.g. S1_F01) — used with --episode")
     p.add_argument("--scene", default=None, help="Scene name for auto scene ref lookup")
     p.add_argument("--frame-id", default=None, help="Shot frame ID for auto scene ref lookup")
+    p.add_argument("--mode", default=None, choices=[None, "narration"],
+                   help="Generation mode: 'narration' injects narrator-style prefix into prompt")
 
     p = sub.add_parser("video-prompt", help="Show video prompt JSON for an episode")
     p.add_argument("--project", required=True, help="Project directory path")
