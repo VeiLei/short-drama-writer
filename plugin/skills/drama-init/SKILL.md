@@ -70,6 +70,17 @@ Based on all collected information, generate these files using the Write tool:
 5. Character cards for key supporting characters
 6. `{project_root}/大纲/总纲.md` — from `templates/master-outline.md`
 
+### Step 6.5: Scene Spatial Layout Pre-fill
+
+For each scene card generated in Step 6, fill the "固定物空间布局" table based on:
+- Scene name and type (室内/室外/半开放)
+- 关键地标 from scene card
+- Typical use of the space (sitting room → sofa + TV + window, etc.)
+
+**Do not** read the scene master image — derive layout from scene description only. The layout will be encoded into the scene-master prompt and used as the canonical spatial reference for all shot prompts.
+
+Output: append a `## 固定物空间布局` section to each scene card in `设定集/场景档案/`.
+
 ### Step 7: Review & Confirm
 
 Present a summary of everything generated. Ask user to confirm before proceeding.
