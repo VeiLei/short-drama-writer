@@ -104,6 +104,20 @@ class AssetIndex:
         m = self.get_scene_master(name)
         return m["tos_url"] if m else ""
 
+    def add_scene_layout(self, name: str, layout: dict) -> str:
+        """添加/替换场景的固定物空间布局。"""
+        data = self._read()
+        scenes = data.setdefault("scenes", {})
+        scene_entry = scenes.setdefault(name, {"master": None, "shot_frames": []})
+        scene_entry["spatial_layout"] = layout
+        self._write(data)
+        return f"{name}/layout"
+
+    def get_scene_layout(self, name: str) -> Optional[dict]:
+        data = self._read()
+        scene = data.get("scenes", {}).get(name, {})
+        return scene.get("spatial_layout")
+
     def add_shot_frame(self, scene_name: str, frame_id: str, frame_type: str,
                        tos_url: str, local_path: str = "", prompt: str = "") -> str:
         """添加场景取景框。frame_id 如 'coffee_bar_2shot'，parent 固定为 scene master。"""
