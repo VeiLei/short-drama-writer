@@ -60,17 +60,33 @@ CLI four-views --project <项目目录> --name <角色名> --prompt "..."
 
 ## 阶段2：场景全景图
 
-读取 `设定集/场景档案/`，对每个场景拼装全景 prompt：
+读取 `设定集/场景档案/`，对每个场景先取出"固定物空间布局"表，将其转换为 JSON，作为 `--layout` 参数传入。
+
+**提示词模板**（用结构化空间描述）：
 
 ```
-{场景类型}，{关键地标}，{空间尺寸}。{氛围基调}，{色调/光照方向}。空镜，无人物。
+{场景类型}，{关键地标}，{空间尺寸}。
+
+固定物空间布局（按结构化方向）：
+- 前（后景）：{从 scene-card 复制}
+- 左：{从 scene-card 复制}
+- 右：{从 scene-card 复制}
+- 中央：{从 scene-card 复制}
+- 地面/天花：{可选}
+
+{氛围基调}，{色调/光照方向}。空镜，无人物。
 竖屏9:16构图，展示场景全貌。
 ```
 
 调用（逐个场景执行）：
+
+1. **先生成 layout JSON**（从 scene-card 表格）：
+
 ```bash
-CLI scene-master --project <项目目录> --name <场景名> --prompt "..."
+CLI scene-master --project <项目> --name <场景名> --prompt @<prompt_file> --layout @<layout_json_file>
 ```
+
+CLI 内部把 layout 写入 `.drama/assets.json` 的 `spatial_layout` 字段。
 
 ---
 
@@ -83,10 +99,10 @@ CLI scene-master --project <项目目录> --name <场景名> --prompt "..."
 drama-write 的分镜流图指定了每个镜头使用的取景框。Claude 提取去重后的取景框清单，逐个检查 `assets.json`，缺失的调用：
 
 ```bash
-CLI shot-frame --project <项目目录> --scene <场景名> --frame-id <frame_id> --frame-type <type> --prompt "..."
+CLI shot-frame --project <项目目录> --scene <场景名> --frame-id <frame_id> --frame-type <type> --fixed-objects "<id1>,<id2>,..." --prompt "..."
 ```
 
-CLI 自动以场景 master 图为 reference_image。
+`--fixed-objects` 列出该取景框中可见的固定物 id（从 scene.spatial_layout 中筛选）。
 
 ### 3b. 缺失变装四视图
 
