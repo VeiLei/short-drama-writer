@@ -144,13 +144,16 @@ class AssetIndex:
         return valid, invalid
 
     def add_shot_frame(self, scene_name: str, frame_id: str, frame_type: str,
-                       tos_url: str, local_path: str = "", prompt: str = "") -> str:
-        """添加场景取景框。frame_id 如 'coffee_bar_2shot'，parent 固定为 scene master。"""
+                       tos_url: str, local_path: str = "", prompt: str = "",
+                       fixed_objects: Optional[list[str]] = None) -> str:
+        """添加场景取景框。frame_id 如 'coffee_bar_2shot'，parent 固定为 scene master。
+
+        fixed_objects: 该取景框中可见的固定物 id 列表（来自 scene.spatial_layout.fixed_objects[].id）。
+        """
         data = self._read()
         scenes = data.setdefault("scenes", {})
         scene_entry = scenes.setdefault(scene_name, {"master": None, "shot_frames": []})
 
-        # 同 frame_id 替换
         scene_entry["shot_frames"] = [
             f for f in scene_entry["shot_frames"] if f.get("frame_id") != frame_id
         ]
@@ -160,6 +163,7 @@ class AssetIndex:
             "tos_url": tos_url,
             "local_path": local_path,
             "prompt": prompt,
+            "fixed_objects": fixed_objects or [],
             "created_at": datetime.now().isoformat(),
         })
         self._write(data)

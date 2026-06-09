@@ -86,3 +86,22 @@ def test_add_scene_master_without_layout_keeps_none(tmp_project):
     idx.add_scene_master("客厅", tos_url="https://tos.example/x.png")
 
     assert idx.get_scene_layout("客厅") is None
+
+
+def test_add_shot_frame_with_fixed_objects(tmp_project):
+    idx = AssetIndex(tmp_project)
+    idx.add_shot_frame("客厅", "客厅_master", "establishing",
+                       tos_url="https://tos.example/f.png",
+                       fixed_objects=["sofa_L", "tv_wall"])
+
+    frame = idx.get_shot_frame("客厅", "客厅_master")
+    assert frame["fixed_objects"] == ["sofa_L", "tv_wall"]
+
+
+def test_add_shot_frame_default_empty_fixed_objects(tmp_project):
+    idx = AssetIndex(tmp_project)
+    idx.add_shot_frame("客厅", "客厅_master", "establishing",
+                       tos_url="https://tos.example/f.png")
+
+    frame = idx.get_shot_frame("客厅", "客厅_master")
+    assert frame["fixed_objects"] == []
