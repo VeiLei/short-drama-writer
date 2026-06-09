@@ -139,7 +139,13 @@ async def cmd_scene_master(args):
         print(f"⊙ {args.name} 全景图已存在，跳过 ({existing['tos_url']})")
         return
 
-    logger.info("Scene master: %s", args.name)
+    layout = None
+    if args.layout:
+        layout = _parse_layout_arg(args.layout)
+        if layout is None:
+            sys.exit(f"Error: --layout 解析失败，参看 help")
+
+    logger.info("Scene master: %s (layout=%s)", args.name, "yes" if layout else "no")
     image_url, tos_url, img_bytes = await gen_and_upload(prompt, args.ratio)
 
     local_dir = Path(project_root) / "素材" / "场景"
@@ -149,8 +155,23 @@ async def cmd_scene_master(args):
         with open(local_path, "wb") as f:
             f.write(img_bytes)
 
-    index.add_scene_master(args.name, tos_url=tos_url, local_path=local_path, prompt=prompt)
-    print(f"✓ {args.name} 全景图 → {tos_url}")
+    index.add_scene_master(args.name, tos_url=tos_url, local_path=local_path,
+                           prompt=prompt, layout=layout)
+    if layout:
+        print(f"✓ {args.name} 全景图 + spatial_layout ({len(layout.get('fixed_objects', []))} 固定物) → {tos_url}")
+    else:
+        print(f"✓ {args.name} 全景图 → {tos_url}")
+
+
+def _parse_layout_arg(value: str) -> Optional[dict]:
+    """解析 --layout 参数：支持 @file.json 路径或内联 JSON 字符串。"""
+    try:
+        if value.startswith("@"):
+            return json.loads(Path(value[1:]).read_text(encoding="utf-8"))
+        return json.loads(value)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"Error: --layout 解析失败: {e}", file=sys.stderr)
+        return None
 
 
 async def cmd_shot_frame(args):
@@ -448,6 +469,7 @@ def main():
     p.add_argument("--name", required=True, help="Scene name")
     p.add_argument("--prompt", required=True, help="Image prompt (use '-' for stdin, '@file' for file)")
     p.add_argument("--ratio", default="9:16", help="Aspect ratio (default: 9:16)")
+    p.add_argument("--layout", default=None, help="Scene spatial layout JSON (inline or '@file.json')")
 
     p = sub.add_parser("shot-frame", help="Generate scene shot frame")
     p.add_argument("--project", required=True)
