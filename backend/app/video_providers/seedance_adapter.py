@@ -21,7 +21,7 @@ class SeedanceAdapter(BaseVideoProvider):
     MODEL_ID = "doubao-seedance-2-0-260128"
 
     def __init__(self):
-        self.api_key = config.DOUBAO_SEEDANCE_API_KEY or config.ARK_API_KEY
+        self.api_key = config.DOUBAO_SEEDANCE_API_KEY or config.ARK_API_KEY or config.DOUBAO_API_KEY
         self.host = config.ARK_BASE_URL or "https://ark.cn-beijing.volces.com/api/v3"
         self._submit_lock = asyncio.Semaphore(1)
 
@@ -93,7 +93,7 @@ class SeedanceAdapter(BaseVideoProvider):
         return VideoResult(
             video_id=task_id,
             video_url=video_url,
-            duration=data.get("duration", duration) if video_url else 0,
+            duration=data.get("duration", 0) if video_url else 0,
             dimensions=content.get("dimensions", ""),
             aspect_ratio=data.get("ratio", "16:9"),
             api_response=data,
