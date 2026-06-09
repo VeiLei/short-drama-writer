@@ -22,6 +22,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Optional
 
 from app.image_providers.jimeng46_adapter import jimeng
 from app.utils.tos import upload_to_tos
@@ -453,6 +454,56 @@ async def cmd_video_cover(args):
     print(f"✓ {args.name} 封面 → {tos_url}")
 
 
+def cmd_layout_check(args):
+    """校验指定剧集的所有镜头的 spatial_anchors 连续性。"""
+    from app.utils.layout_checker import check_episode, format_report_markdown
+
+    project_root = resolve_project(args.project)
+    index = AssetIndex(project_root)
+
+    prompt_file = Path(project_root) / "提示词" / f"第{args.episode}集-视频提示词.json"
+    if not prompt_file.exists():
+        sys.exit(f"Video prompt JSON not found: {prompt_file}")
+
+    data = json.loads(prompt_file.read_text(encoding="utf-8"))
+    shots = data.get("shots", [])
+
+    # Group shots by scene
+    shots_by_scene = {}
+    for shot in shots:
+        scene = shot.get("scene_reference", {}).get("scene_name", "unknown")
+        shots_by_scene.setdefault(scene, []).append(shot)
+
+    # Collect layouts
+    layouts = {}
+    missing_layouts = []
+    for scene_name in shots_by_scene:
+        layout = index.get_scene_layout(scene_name)
+        if layout:
+            layouts[scene_name] = layout
+        else:
+            missing_layouts.append(scene_name)
+
+    if missing_layouts and not args.skip_missing:
+        print(f"Error: 以下场景缺失 spatial_layout: {missing_layouts}", file=sys.stderr)
+        print("请先在 scene-card.md 中填写固定物空间布局，再调用 scene-master --layout 生成", file=sys.stderr)
+        sys.exit(1)
+
+    issues = check_episode(shots_by_scene, layouts)
+    report = format_report_markdown(issues)
+
+    if args.output:
+        out_path = Path(args.output)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(report, encoding="utf-8")
+        print(f"✓ 校验报告写入 {out_path}")
+    else:
+        print(report)
+
+    blocking = [i for i in issues if i.get("severity") == "blocking"]
+    sys.exit(2 if blocking else 0)
+
+
 # ── Main ──────────────────────────────────────────────────────────
 
 def main():
@@ -518,6 +569,12 @@ def main():
     p.add_argument("--mode", default=None, choices=[None, "narration"],
                    help="Generation mode: 'narration' injects narrator-style prefix into prompt")
 
+    p = sub.add_parser("layout-check", help="Validate spatial_anchors continuity across shots")
+    p.add_argument("--project", required=True, help="Project directory path")
+    p.add_argument("--episode", required=True, help="Episode ID (e.g. 0001)")
+    p.add_argument("--output", default=None, help="Output file path (default: stdout)")
+    p.add_argument("--skip-missing", action="store_true", help="Skip scenes with missing spatial_layout")
+
     p = sub.add_parser("video-prompt", help="Show video prompt JSON for an episode")
     p.add_argument("--project", required=True, help="Project directory path")
     p.add_argument("--episode", required=True, help="Episode ID (e.g. 0001)")
@@ -527,7 +584,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    sync_cmds = {"assets", "video-prompt"}
+    sync_cmds = {"assets", "video-prompt", "layout-check"}
     if args.command in sync_cmds:
         globals()[f"cmd_{args.command.replace('-', '_')}"](args)
     else:
