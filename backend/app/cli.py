@@ -390,6 +390,31 @@ def cmd_video_prompt(args):
         print("Video prompts are generated during /drama-write. Run drama-write first.")
 
 
+async def cmd_video_cover(args):
+    """生成视频封面。包装 jimeng.generate，写入 assets.json covers 段。"""
+    project_root = resolve_project(args.project)
+    prompt = read_prompt(args.prompt)
+    index = AssetIndex(project_root)
+
+    # 幂等：已存在则跳过
+    local_dir = Path(project_root) / "素材" / "封面"
+    local_dir.mkdir(parents=True, exist_ok=True)
+    local_path = local_dir / f"{args.name}.png"
+    if local_path.exists():
+        print(f"⊙ {args.name} 封面已存在，跳过")
+        return
+
+    logger.info("Video cover: %s", args.name)
+    image_url, tos_url, img_bytes = await gen_and_upload(prompt, args.ratio)
+
+    if img_bytes:
+        with open(local_path, "wb") as f:
+            f.write(img_bytes)
+
+    index.add_cover(args.name, tos_url=tos_url, local_path=str(local_path), prompt=prompt)
+    print(f"✓ {args.name} 封面 → {tos_url}")
+
+
 # ── Main ──────────────────────────────────────────────────────────
 
 def main():
@@ -432,6 +457,12 @@ def main():
 
     p = sub.add_parser("assets", help="List all generated assets")
     p.add_argument("--project", required=True, help="Project directory path")
+
+    p = sub.add_parser("video-cover", help="Generate video cover image (wraps jimeng.generate)")
+    p.add_argument("--project", required=True, help="Project directory path")
+    p.add_argument("--name", required=True, help="Cover name (e.g., '封面' or 'cover_v1')")
+    p.add_argument("--prompt", required=True, help="Image prompt (use '-' for stdin, '@file' for file)")
+    p.add_argument("--ratio", default="9:16", help="Aspect ratio (default: 9:16)")
 
     p = sub.add_parser("video-generate", help="Generate video via Seedance")
     p.add_argument("--project", required=True, help="Project directory path")

@@ -118,6 +118,15 @@ class AssetIndex:
         scene = data.get("scenes", {}).get(name, {})
         return scene.get("spatial_layout")
 
+    def get_fixed_object_ids(self, name: str) -> list[str]:
+        """列出场景 spatial_layout 中所有 fixed_objects 和 walkable_zones 的 id。"""
+        layout = self.get_scene_layout(name)
+        if not layout:
+            return []
+        ids = [obj["id"] for obj in layout.get("fixed_objects", []) if "id" in obj]
+        ids += [zone["id"] for zone in layout.get("walkable_zones", []) if "id" in zone]
+        return ids
+
     def add_shot_frame(self, scene_name: str, frame_id: str, frame_type: str,
                        tos_url: str, local_path: str = "", prompt: str = "") -> str:
         """添加场景取景框。frame_id 如 'coffee_bar_2shot'，parent 固定为 scene master。"""
@@ -223,6 +232,21 @@ class AssetIndex:
             result["missing"].append(f"取景框:{scene_name}/{frame_id}")
 
         return result
+
+    # ── 封面 ─────────────────────────────────────────────────
+
+    def add_cover(self, name: str, tos_url: str, local_path: str, prompt: str):
+        """记录一个视频封面。"""
+        data = self._read()
+        if "covers" not in data:
+            data["covers"] = {}
+        data["covers"][name] = {
+            "tos_url": tos_url,
+            "local_path": local_path,
+            "prompt": prompt,
+            "created_at": datetime.now().isoformat(),
+        }
+        self._write(data)
 
     def to_dict(self) -> dict:
         return self._read()
