@@ -114,6 +114,22 @@
    - [ ] 如有站位变化，过渡动作已写入本镜？
    - [ ] spatial_anchors 键名集合一致？
 
+#### 3.2 spatial_anchors 来源约束
+
+> **核心规则**：所有 shot 的 `spatial_anchors` 键**必须**从 `scene.spatial_layout` 的 `fixed_objects[].id` 和 `walkable_zones[].id` 集合中选取。
+
+**禁止**：
+- 凭空发明 layout 中不存在的固定物（如 layout 没有"门"，prompt 不得写"门在左侧"）
+- 引入 layout 中未定义的区域名称
+
+**允许**：
+- 同一 key 在不同镜头中的位置描述可派生（如 "sofa_L" 在 F01 是"画面左下"，在 F02 可写"沙发在画面左侧可见"）
+- walkable_zone 用来标注人物可活动区域
+
+**校验**：`python -m app.cli layout-check --project <项目> --episode N` 会扫描所有 shot 的 spatial_anchors，自动检查违规键。Blocking 级错误会阻止生成。
+
+**修复流程**：发现 invalid_key → 在 scene-card 中补上对应固定物 → 重新生成 master（如有结构变化）→ 更新所有 shot 的 spatial_anchors。
+
 ### 4. 镜头语言
 
 - 景别 + 运镜 + 拍摄角度
